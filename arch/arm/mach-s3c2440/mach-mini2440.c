@@ -4,7 +4,8 @@
  *      Based on mach-anubis.c by Ben Dooks <ben@simtec.co.uk>
  *      and modifications by SBZ <sbz@spgui.org> and
  *      Weibing <http://weibing.blogbus.com> and
- *      Michel Pollet <buserror@gmail.com>
+ *      Michel Pollet <buserror@gmail.com> and
+ *      Philippe Lague-Morin <philippe@screenshot.ca>
  *
  * For product information, visit http://code.google.com/p/mini2440/
  *
@@ -47,6 +48,8 @@
 #include <plat/iic.h>
 #include <plat/mci.h>
 #include <plat/udc.h>
+#include <plat/adc.h>
+#include <plat/ts.h>
 
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/nand.h>
@@ -531,6 +534,7 @@ static struct platform_device *mini2440_devices[] __initdata = {
 	&uda1340_codec,
 	&mini2440_audio,
 	&samsung_asoc_dma,
+	&s3c_device_adc,
 };
 
 static void __init mini2440_map_io(void)
@@ -614,8 +618,15 @@ static void __init mini2440_parse_features(
 			features->done |= FEATURE_BACKLIGHT;
 			break;
 		case 't':
-			printk(KERN_INFO "MINI2440: '%c' ignored, "
-				"touchscreen not compiled in\n", f);
+			if (features->done & FEATURE_TOUCH)
+				printk(KERN_INFO "MINI2440: '%c' ignored, "
+					"touchscreen already set\n", f);
+			else {
+				features->optional[features->count++] =
+					&s3c_device_ts;
+				s3c24xx_ts_set_platdata(NULL);
+			}	
+			features->done |= FEATURE_TOUCH;
 			break;
 		case 'c':
 			if (features->done & FEATURE_CAMERA)
